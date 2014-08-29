@@ -1,17 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Configuration;
+using Microsoft.CSharp.RuntimeBinder;
 
 using DataSift;
 using DataSift.Enum;
 using DataSift.Streaming;
-using System.Data.SqlClient;
-using System.Data.Entity;
-using System.Data.Entity.Infrastructure;
-using Microsoft.CSharp.RuntimeBinder;           
-using System.Configuration;
 
 namespace QuickStart
 {
@@ -20,28 +13,33 @@ namespace QuickStart
         // References we'll need to keep
         private static DataSiftStream _stream;
         private static string _hash;
-        private static TestDbEntities _db = new TestDbEntities();
-        private static string filter_keyword;
+        private static TestDbEntities _db;
+        private static string _filter_keyword;
 
         static void Main(string[] args)
         {
+            // Read settings from App.config
+            _filter_keyword = ConfigurationManager.AppSettings.GetValues("datasift_keyword")[0];
+            
             string datasift_username = ConfigurationManager.AppSettings.GetValues("datasift_username")[0];
             string datasift_apikey = ConfigurationManager.AppSettings.GetValues("datasift_apikey")[0];
-            string datasift_keyword = ConfigurationManager.AppSettings.GetValues("datasift_keyword")[0];
+            
+
             // Create a new DataSift client
             var client = new DataSiftClient(datasift_username, datasift_apikey);
-            filter_keyword = datasift_keyword;
           
 
-            // Compile filter
-            var csdl = " return { twitter.text contains_any \"" + datasift_keyword +"\" ";
-            //var csdl = " return {";
-            csdl += @"AND 
-                        (twitter.user.time_zone == ""Kuala Lumpur""
-                    OR
-	                    twitter.user.time_zone == ""Asia/Kuala_Lumpur"")
-                    }";
-            
+            // Compile filter. {0} is replaced with _filter_keyword value
+            var csdl = String.Format( @" return {   
+                                                    twitter.text contains_any ""{0}"" 
+                                                    AND 
+                                                    (
+                                                        twitter.user.time_zone == ""Kuala Lumpur""
+                                                        OR
+	                                                    twitter.user.time_zone == ""Asia/Kuala_Lumpur""
+                                                    )
+                                                 }", 
+                                                   _filter_keyword);
 
             var compiled = client.Compile(csdl);
             _hash = compiled.Data.hash;
@@ -68,21 +66,26 @@ namespace QuickStart
 
         static void stream_OnMessage(string hash, dynamic message)
         {
-            string filter_keywords_on = filter_keyword;
-            Console.WriteLine("{0}", message.twitter.text);
-            string sentimental = null;
+            Console.WriteLine("KEYWORD:{0}. MESSAGE: {1}", _filter_keyword, message.twitter.text);
+
+
+            #region GET TWEET SENTIMENT 
+            string sentiment = null;
             try 
             {
-                sentimental = Convert.ToString(message.salience.content.sentiment);
+                sentiment = Convert.ToString(message.salience.content.sentiment);
             }
             catch(RuntimeBinderException)
             {
-                sentimental = null;
+                sentiment = null;
             }
-            //GET TWEET MESSAGE FROM TWITTER================================================
-            var text = message.twitter.text;
+            #endregion
 
-            //GET USER_ID, SCREEEN NAME FROM TWITTER=========================================
+            #region GET TWEET MESSAGE 
+            var text = message.twitter.text;
+            #endregion
+
+            #region GET USER_ID, SCREEEN NAME 
             string user_id = null;
             try 
             {
@@ -92,12 +95,13 @@ namespace QuickStart
             {
                 user_id = null;
             }
-            //===============================================================================
-           
-            var lang = message.twitter.lang;
-            //==============================================================================
+            #endregion
 
-            //GET USER_LOCATION TWITTER======================================================
+            #region GET LANGUAGE 
+            var lang = message.twitter.lang;
+            #endregion
+
+            #region GET USER_LOCATION
             string user_location;
             try
             {
@@ -107,9 +111,9 @@ namespace QuickStart
             {
                 user_location = null;
             }
-           //=================================================================================
+            #endregion
 
-            //GET USER NAME FROM TWITTER======================================================
+            #region GET USER_NAME 
             string user_name = null;
             try
             {
@@ -119,10 +123,9 @@ namespace QuickStart
             {
                 user_name = null;
             }
-            //================================================================================
-            
-            
-            // GET COUNTRY NAME FROM TWITTER==================================================
+            #endregion
+
+            #region GET COUNTRY NAME
             string country;
             try
             {
@@ -132,9 +135,9 @@ namespace QuickStart
             {
                 country = null;
             }
-            //=================================================================================
+            #endregion
 
-            //GET REGION FROM TWITTER==========================================================
+            #region GET REGION
             string region;
             try
             {
@@ -145,16 +148,17 @@ namespace QuickStart
                 region = null;
             }
 
-            //=================================================================================
+            #endregion
+
+            #region GET TIME ZONE
             var time_zone = message.twitter.user.time_zone;
-            
-            //GET GEO_LOCATION FROM TWITTER
+            #endregion
+
+            #region GET GEO_LOCATION 
             string geo_latitude;
             string geo_longtitude;
-            //dynamic geo = message.twitter.geo;
             try
             {
-                //Console.WriteLine("{0}", Convert.ToString(message.twitter.geo));
                 geo_latitude = Convert.ToString(message.twitter.geo.latitude);
                 geo_longtitude = Convert.ToString(message.twitter.geo.longitude);
             }
@@ -164,20 +168,21 @@ namespace QuickStart
                 geo_latitude = null;
                 geo_longtitude = null;
             }
-            //====================================================================================
+            #endregion
 
-            //GET DATE_TIME FROM TWITTER
+            #region GET DATE_TIME
             string date_time;
-            try {
+            try 
+            {
                 date_time = Convert.ToString(message.twitter.created_at);
             }
             catch (RuntimeBinderException)
             {
                 date_time = null;
             }
-            //========================================================================================
+            #endregion
 
-            //GET RETWEET COUNT=======================================================================
+            #region GET RETWEET COUNT
             string retweet_count;
             try
             {
@@ -187,9 +192,9 @@ namespace QuickStart
             {
                 retweet_count = null;
             }
-            
+            #endregion
 
-            //========================================================================================
+            #region INSERT TO DATABASE
             var msg = new SocialDatas
             {
                 Message = text,
@@ -202,24 +207,20 @@ namespace QuickStart
                 User_Name = user_name,
                 Geo_Latitude = geo_latitude,
                 Geo_Longitude = geo_longtitude,
-                Sentiment = sentimental,
+                Sentiment = sentiment,
                 Date_Time = date_time,
                 RetweetsCount = retweet_count,
-                FilterKeyword = filter_keywords_on
-
+                FilterKeyword = _filter_keyword
             };
 
             _db.SocialDatas.Add(msg);
-             _db.Entry(msg).State = System.Data.Entity.EntityState.Added;
+            _db.Entry(msg).State = System.Data.Entity.EntityState.Added;
 
             _db.SaveChanges();
-
+            #endregion
 
         }
-        public static bool PropertyExist(object obj, string propertyName)
-        {
-            return obj.GetType().GetProperty(propertyName) != null;
-        }
+       
         static void stream_OnDelete(string hash, dynamic message)
         {
             // You must delete the interaction to stay compliant
