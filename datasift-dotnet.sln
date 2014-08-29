@@ -1,6 +1,8 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2012
+# Visual Studio 2013
+VisualStudioVersion = 12.0.30110.0
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DataSift", "DataSift\DataSift.csproj", "{80D719FA-7305-4DA0-9392-784533A4D87A}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DataSiftTests", "DataSiftTests\DataSiftTests.csproj", "{E459E38D-E944-4A15-AE65-7DC209094CDE}"
@@ -13,6 +15,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DataSiftExamples", "DataSif
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Resources", "Resources", "{C1778644-03A6-4CCA-AFB6-D7CB4B7CAFAC}"
 	ProjectSection(SolutionItems) = preProject
+		..\DataSiftDB_backup = ..\DataSiftDB_backup
 		README.md = README.md
 	EndProjectSection
 EndProject
