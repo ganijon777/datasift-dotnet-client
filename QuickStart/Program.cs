@@ -18,6 +18,9 @@ namespace QuickStart
 
         static void Main(string[] args)
         {
+            // initialize db connection
+            _db = new TestDbEntities();
+
             // Read settings from App.config
             _filter_keyword = ConfigurationManager.AppSettings.GetValues("datasift_keyword")[0];
             
@@ -29,17 +32,25 @@ namespace QuickStart
             var client = new DataSiftClient(datasift_username, datasift_apikey);
           
 
-            // Compile filter. {0} is replaced with _filter_keyword value
-            var csdl = String.Format( @" return {   
-                                                    twitter.text contains_any ""{0}"" 
-                                                    AND 
-                                                    (
-                                                        twitter.user.time_zone == ""Kuala Lumpur""
-                                                        OR
-	                                                    twitter.user.time_zone == ""Asia/Kuala_Lumpur""
-                                                    )
-                                                 }", 
-                                                   _filter_keyword);
+            // Compile filter.
+            
+            string csdl = "";
+            
+            if (string.IsNullOrEmpty(_filter_keyword))
+	        {
+                csdl += @" return { ";
+	        }
+            else
+            {
+                csdl += @" return { twitter.text contains_any """ + _filter_keyword + @""" AND ";
+            }
+
+            csdl += @"( twitter.user.time_zone == ""Kuala Lumpur""
+                        OR
+                        twitter.user.time_zone == ""Asia/Kuala_Lumpur""
+                      )
+             }";
+
 
             var compiled = client.Compile(csdl);
             _hash = compiled.Data.hash;
