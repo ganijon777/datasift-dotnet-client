@@ -79,6 +79,7 @@
     <None Include="App.config">
       <SubType>Designer</SubType>
     </None>
+    <None Include="Data\DataSiftDB_backup" />
     <None Include="packages.config" />
     <EntityDeploy Include="TestDB.edmx">
       <Generator>EntityModelCodeGenerator</Generator>
